@@ -168,6 +168,8 @@ enum
 {
     STATISTICS_NUM_RANGES = 5,
     STATISTICS_SAMPLES = 300,
+    PD_START_TM = 0,
+    PD_STOP_TM = 1,
 };
 
 
@@ -178,8 +180,9 @@ protected:
     unsigned int op;
     boost::asio::deadline_timer timer;
     RecordType history[STATISTICS_NUM_RANGES][STATISTICS_SAMPLES];
-    int loc[STATISTICS_NUM_RANGES];
-    int len[STATISTICS_NUM_RANGES];
+    int64_t    historyTime[2][STATISTICS_NUM_RANGES][STATISTICS_SAMPLES];
+    int     loc[STATISTICS_NUM_RANGES];
+    int     len[STATISTICS_NUM_RANGES];
     uint64_t timerCount;
     unsigned int sampleCount;
     RecordType total;
@@ -227,6 +230,8 @@ public:
             for (int j = 0; j < STATISTICS_SAMPLES; j++)
             {
                 history[i][j] = RecordType();
+                historyTime[PD_START_TM][i][j] = 0;
+                historyTime[PD_STOP_TM][i][j] = 0;
             }
         total = RecordType();
         this->value = RecordType();
@@ -359,8 +364,11 @@ public:
         statReset(this->value, op);
         if ((op & STAT_KEEP_COUNT) == 0)
             sampleCount = 0;
-
-        history[0][loc[0]] = samples[0];
+        
+        int64_t cur_time = GetTimeMillis();
+        history[0][loc[0]]     = samples[0];
+        historyTime[PD_START_TM][0][loc[0]] = cur_time;
+        historyTime[PD_STOP_TM][0][loc[0]] = cur_time;
         loc[0]++;
         len[0]++;
         if (loc[0] >= STATISTICS_SAMPLES)
@@ -391,12 +399,16 @@ public:
             {
                 int start = loc[i];
                 RecordType accumulator = RecordType();
+                int64_t    accumulatorStTime = 0;
+                int64_t    accumulatorSpTime = 0;
 
                 // First time in the loop we need to assign
                 start--;
                 if (start < 0)
                     start += STATISTICS_SAMPLES; // Wrap around
                 accumulator = history[i][start];
+                accumulatorStTime = historyTime[PD_START_TM][i][start];
+                accumulatorSpTime = historyTime[PD_STOP_TM][i][start];
                 // subsequent times we combine as per the operation
                 for (int j = 1; j < operateSampleCount[i]; j++)
                 {
@@ -404,8 +416,12 @@ public:
                     if (start < 0)
                         start += STATISTICS_SAMPLES; // Wrap around
                     RecordType datapt = history[i][start];
-                    if ((op & STAT_OP_SUM) || (op & STAT_OP_AVE))
+                    //emd int64_t dataptStrtTm = historyTime[PD_START_TM][i][start]; 
+                    //emd int64_t dataptStopTm = historyTime[PD_STOP_TM][i][start];
+                    if ((op & STAT_OP_SUM) || (op & STAT_OP_AVE)) 
+                    {
                         accumulator += datapt;
+                    }
                     else if (op & STAT_OP_MAX)
                     {
                         if (accumulator < datapt)
@@ -422,9 +438,10 @@ public:
                 if (op & STAT_OP_AVE)
                     accumulator /= ((DataType)operateSampleCount[i]);
                 history[i + 1][loc[i + 1]] = accumulator;
+                historyTime[PD_START_TM][i + 1][loc[i + 1]] = accumulatorStTime;
+                historyTime[PD_STOP_TM][i + 1][loc[i + 1]] = accumulatorSpTime;
                 loc[i + 1]++;
-                len[i + 1]++;
-                if (loc[i + 1] >= STATISTICS_SAMPLES)
+                len[i + 1]++; if (loc[i + 1] >= STATISTICS_SAMPLES)
                     loc[i + 1] = 0; // Wrap around
                 if (len[i + 1] >= STATISTICS_SAMPLES)
                     len[i + 1] = STATISTICS_SAMPLES; // full
