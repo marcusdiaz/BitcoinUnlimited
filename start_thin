@@ -1,1 +1,0 @@
-src/bitcoind -daemon -regtest -use-thinblocks -connect-thinblock=10.0.0.38 -expeditedblock=10.0.0.38 -whitelist=10.0.0.38
