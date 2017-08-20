@@ -5463,7 +5463,7 @@ bool AlreadyHave(const CInv &inv) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 void static ProcessGetData(CNode *pfrom, const Consensus::Params &consensusParams)
 {
     std::deque<CInv>::iterator it = pfrom->vRecvGetData.begin();
-
+    LogPrintf("emd - Begin ProcessGetdata\n");
     std::vector<CInv> vNotFound;
 
     LOCK(cs_main);
@@ -5483,6 +5483,7 @@ void static ProcessGetData(CNode *pfrom, const Consensus::Params &consensusParam
             if (inv.type == MSG_BLOCK || inv.type == MSG_FILTERED_BLOCK || inv.type == MSG_THINBLOCK ||
                 inv.type == MSG_XTHINBLOCK)
             {
+                LogPrintf("emd - Into BUIP Xtreme\n");
                 bool send = false;
                 BlockMap::iterator mi = mapBlockIndex.find(inv.hash);
                 if (mi != mapBlockIndex.end())
@@ -5558,7 +5559,8 @@ void static ProcessGetData(CNode *pfrom, const Consensus::Params &consensusParam
                         // BUIP010 Xtreme Thinblocks: begin section
                         else if (inv.type == MSG_THINBLOCK || inv.type == MSG_XTHINBLOCK)
                         {
-                            LogPrint("thin", "Sending xthin by INV queue getdata message\n");
+                            LogPrintf("thin", "Sending xthin by INV queue getdata message\n");
+                            LogPrintf("emd - Sending xthin \n");
                             SendXThinBlock(block, pfrom, inv);
                         }
                         // BUIP010 Xtreme Thinblocks: end section

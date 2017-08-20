@@ -429,12 +429,14 @@ bool CXThinBlockTx::HandleMessage(CDataStream &vRecv, CNode *pfrom)
 
 CXRequestThinBlockTx::CXRequestThinBlockTx(uint256 blockHash, set<uint64_t> &setHashesToRequest)
 {
+    LogPrintf("emd - Entered CXRequestThinBlockTx\n");
     blockhash = blockHash;
     setCheapHashesToRequest = setHashesToRequest;
 }
 
 bool CXRequestThinBlockTx::HandleMessage(CDataStream &vRecv, CNode *pfrom)
 {
+    LogPrintf("emd - Entered HandleMessage 1 \n");
     if (!pfrom->ThinBlockCapable())
     {
         dosMan.Misbehaving(pfrom, 100);
@@ -532,6 +534,7 @@ bool CXThinBlock::CheckBlockHeader(const CBlockHeader &block, CValidationState &
  */
 bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strCommand, unsigned nHops)
 {
+    LogPrintf("emd - Handle Message for incoming xthin block\n");
     if (!pfrom->ThinBlockCapable())
     {
         dosMan.Misbehaving(pfrom, 5);
@@ -1506,6 +1509,7 @@ void AddThinBlockInFlight(CNode *pfrom, uint256 hash)
 
 void SendXThinBlock(CBlock &block, CNode *pfrom, const CInv &inv)
 {
+    LogPrintf("emd - Entered into SendXThinBlock\n");
     if (inv.type == MSG_XTHINBLOCK)
     {
         CXThinBlock xThinBlock(block, pfrom->pThinBlockFilter);
@@ -1513,6 +1517,7 @@ void SendXThinBlock(CBlock &block, CNode *pfrom, const CInv &inv)
         if (xThinBlock.collision ==
             true) // If there is a cheapHash collision in this block then send a normal thinblock
         {
+            LogPrintf("emd - Sending normal thinblock\n");
             CThinBlock thinBlock(block, *pfrom->pThinBlockFilter);
             int nSizeThinBlock = ::GetSerializeSize(xThinBlock, SER_NETWORK, PROTOCOL_VERSION);
             if (nSizeThinBlock < nSizeBlock)
@@ -1535,6 +1540,7 @@ void SendXThinBlock(CBlock &block, CNode *pfrom, const CInv &inv)
         }
         else // Send an xThinblock
         {
+            LogPrintf("emd - Sending xThinblock\n");
             // Only send a thinblock if smaller than a regular block
             int nSizeThinBlock = ::GetSerializeSize(xThinBlock, SER_NETWORK, PROTOCOL_VERSION);
             if (nSizeThinBlock < nSizeBlock)
@@ -1558,6 +1564,7 @@ void SendXThinBlock(CBlock &block, CNode *pfrom, const CInv &inv)
     }
     else if (inv.type == MSG_THINBLOCK)
     {
+        LogPrintf("emd - Sending normal thinblock\n");
         CThinBlock thinBlock(block, *pfrom->pThinBlockFilter);
         int nSizeBlock = ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION);
         int nSizeThinBlock = ::GetSerializeSize(thinBlock, SER_NETWORK, PROTOCOL_VERSION);
