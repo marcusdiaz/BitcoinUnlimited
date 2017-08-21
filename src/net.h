@@ -519,6 +519,9 @@ public:
     // BUIP010:
     bool ThinBlockCapable()
     {
+        LogPrintf("emd - NODE_NETWORK=%s, NODE_GETUTXO=%s, NODE_BLOOM=%s, NODE_WITNESS=%s, NODE_XTHIN=%s, NODE_BITCOIN_CASH=%s\n",
+                  NODE_NETWORK, NODE_GETUTXO, NODE_BLOOM, NODE_WITNESS, NODE_XTHIN, NODE_BITCOIN_CASH);
+
         if (nServices & NODE_XTHIN)
             return true;
         return false;
