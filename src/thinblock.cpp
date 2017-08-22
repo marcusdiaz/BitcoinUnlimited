@@ -568,6 +568,8 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
             {
                 return error("xthinblock from peer %s will not connect, unknown previous block %s", pfrom->GetLogName(),
                     prevHash.ToString());
+            } else {
+                LogPrintf("emd - Did find a prev has %s from peer %s\n",prevHash.ToString(), pfrom->GetLogName());
             }
         }
 
@@ -624,7 +626,7 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
                 strCommand, inv.hash.ToString(), pfrom->GetLogName());
             return true;
         }
-
+        LogPrintf("emd - Aboug to get if expedited block\n");
         // If this is an expedited block then add and entry to mapThinBlocksInFlight.
         if (nHops > 0 && connmgr->IsExpeditedUpstream(pfrom))
         {
