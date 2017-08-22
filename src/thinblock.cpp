@@ -589,7 +589,7 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
                     dosMan.Misbehaving(pfrom, nDoS);
                 LogPrintf("Received an invalid %s header from peer %s\n", strCommand, pfrom->GetLogName());
             }
-
+            LogPrintf("emd - Entered failed AcceptBlockHeader line 592\n");
             thindata.ClearThinBlockData(pfrom, thinBlock.header.GetHash());
             return false;
         }
@@ -608,6 +608,7 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
         // Return early if we already have the block data
         if (pIndex->nStatus & BLOCK_HAVE_DATA)
         {
+            LogPrintf("emd - Return early because we already have the block line 611\n");
             // Tell the Request Manager we received this block
             requester.AlreadyReceived(inv);
 
@@ -621,6 +622,7 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
         // Request full block if it isn't extending the best chain
         if (pIndex->nChainWork <= chainActive.Tip()->nChainWork)
         {
+            LogPrintf("emd - Line 625 - thinblock.cpp\n");
             vector<CInv> vGetData;
             vGetData.push_back(inv);
             pfrom->PushMessage(NetMsgType::GETDATA, vGetData);
@@ -632,7 +634,7 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
             return true;
         }
 
-        LogPrintf("emd - Aboug to get if expedited block\n");
+        LogPrintf("emd - About to get if expedited block\n");
 
         // If this is an expedited block then add and entry to mapThinBlocksInFlight.
         if (nHops > 0 && connmgr->IsExpeditedUpstream(pfrom))
