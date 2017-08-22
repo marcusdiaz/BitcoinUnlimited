@@ -862,7 +862,7 @@ bool CXThinBlock::process(CNode *pfrom,
         pfrom->thinBlock.GetHash().ToString(), blockSize, pfrom->nSizeThinBlock,
         ((float)blockSize) / ((float)pfrom->nSizeThinBlock), pfrom->GetLogName());
 
-    LogPrintf("emd - Line 864 About to update run-time statistics\n");
+    LogPrintf("emd - Line 864 About to update run-time statistics\n", thidata.ToString().c_str());
     
     // Update run-time statistics of thin block bandwidth savings
     thindata.UpdateInBound(pfrom->nSizeThinBlock, blockSize);
