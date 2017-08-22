@@ -689,6 +689,7 @@ bool CXThinBlock::process(CNode *pfrom,
     }
     
     LogPrintf("emd - Line 689 - About to ClearThinBLockData\n");
+    LogPrintf("emd - Line 692 - thinblock Data . %s\n",thindata.ToString().c_str());
 
     thindata.ClearThinBlockData(pfrom);
     pfrom->nSizeThinBlock = nSizeThinBlock;
@@ -779,6 +780,7 @@ bool CXThinBlock::process(CNode *pfrom,
             // We don't need this after here.
             mapPartialTxHash.clear();
 
+            LogPrintf("emd - Line 783 About to Reconstruct block\n");
             // Reconstruct the block if there are no hashes to re-request
             if (setHashesToRequest.empty())
             {
@@ -850,6 +852,8 @@ bool CXThinBlock::process(CNode *pfrom,
         return error("Still missing transactions for xthinblock: re-requesting a full block");
     }
 
+    LogPrintf("emd - Line 854 We now have all transactions\n");
+    
     // We now have all the transactions now that are in this block
     pfrom->thinBlockWaitingForTxns = -1;
     int blockSize = pfrom->thinBlock.GetSerializeSize(SER_NETWORK, CBlock::CURRENT_VERSION);
@@ -858,10 +862,14 @@ bool CXThinBlock::process(CNode *pfrom,
         pfrom->thinBlock.GetHash().ToString(), blockSize, pfrom->nSizeThinBlock,
         ((float)blockSize) / ((float)pfrom->nSizeThinBlock), pfrom->GetLogName());
 
+    LogPrintf("emd - Line 864 About to update run-time statistics\n");
+    
     // Update run-time statistics of thin block bandwidth savings
     thindata.UpdateInBound(pfrom->nSizeThinBlock, blockSize);
     LogPrint("thin", "thin block stats: %s\n", thindata.ToString().c_str());
 
+    LogPrintf("emd - LIne 871 updated thin block stats: %s\n", thindata.ToString().c_str());
+    
     // Process the full block
     PV->HandleBlockMessage(pfrom, strCommand, pfrom->thinBlock, GetInv());
 
