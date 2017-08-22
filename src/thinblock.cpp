@@ -53,6 +53,7 @@ CThinBlock::CThinBlock(const CBlock &block, CBloomFilter &filter)
  */
 bool CThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom)
 {
+    LogPrintf("emd - Entered Handle Message for incoming thin block line 56\n");
     if (!pfrom->ThinBlockCapable())
     {
         dosMan.Misbehaving(pfrom, 100);
@@ -78,7 +79,10 @@ bool CThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom)
         {
             return error("thinblock from peer %s will not connect, unknown previous block %s", pfrom->GetLogName(),
                 prevHash.ToString());
+        } else {
+            LogPrintf("emd - Did find a prev has %s from peer %s\n",prevHash.ToString(), pfrom->GetLogName());
         }
+        
         CBlockIndex *pprev = mi->second;
         CValidationState state;
         if (!ContextualCheckBlockHeader(thinBlock.header, state, pprev))
@@ -284,6 +288,7 @@ CXThinBlockTx::CXThinBlockTx(uint256 blockHash, vector<CTransaction> &vTx)
 
 bool CXThinBlockTx::HandleMessage(CDataStream &vRecv, CNode *pfrom)
 {
+    LogPrintf("emd - Entered Handle Message line 291\n");
     if (!pfrom->ThinBlockCapable())
     {
         dosMan.Misbehaving(pfrom, 100);
@@ -436,7 +441,7 @@ CXRequestThinBlockTx::CXRequestThinBlockTx(uint256 blockHash, set<uint64_t> &set
 
 bool CXRequestThinBlockTx::HandleMessage(CDataStream &vRecv, CNode *pfrom)
 {
-    LogPrintf("emd - Entered HandleMessage 1 \n");
+    LogPrintf("emd - Entered HandleMessage line 444 \n");
     if (!pfrom->ThinBlockCapable())
     {
         dosMan.Misbehaving(pfrom, 100);
@@ -534,7 +539,7 @@ bool CXThinBlock::CheckBlockHeader(const CBlockHeader &block, CValidationState &
  */
 bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strCommand, unsigned nHops)
 {
-    LogPrintf("emd - Handle Message for incoming xthin block\n");
+    LogPrintf("emd - Handle Message for incoming xthin block line 542\n");
     if (!pfrom->ThinBlockCapable())
     {
         dosMan.Misbehaving(pfrom, 5);
@@ -626,7 +631,9 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
                 strCommand, inv.hash.ToString(), pfrom->GetLogName());
             return true;
         }
+
         LogPrintf("emd - Aboug to get if expedited block\n");
+
         // If this is an expedited block then add and entry to mapThinBlocksInFlight.
         if (nHops > 0 && connmgr->IsExpeditedUpstream(pfrom))
         {
