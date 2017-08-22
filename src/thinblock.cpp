@@ -130,6 +130,7 @@ bool CThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom)
 
 bool CThinBlock::process(CNode *pfrom, int nSizeThinBlock)
 {
+    LogPrintf("emd - LIne 133 Entered process\n");
     // Xpress Validation - only perform xval if the chaintip matches the last blockhash in the thinblock
     bool fXVal;
     {
@@ -639,6 +640,7 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
         // If this is an expedited block then add and entry to mapThinBlocksInFlight.
         if (nHops > 0 && connmgr->IsExpeditedUpstream(pfrom))
         {
+            LogPrintf("emd - Line 643 - About to AddThinBLockInFlight\n");
             AddThinBlockInFlight(pfrom, inv.hash);
 
             LogPrint("thin", "Received new expedited %s %s from peer %s hop %d size %d bytes\n", strCommand,
@@ -663,7 +665,7 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
     // Send expedited block without checking merkle root.
     if (!IsRecentlyExpeditedAndStore(inv.hash))
         SendExpeditedBlock(thinBlock, nHops, pfrom);
-
+    LogPrintf("emd - Line 666 About to return thinblock.process\n");
     return thinBlock.process(pfrom, nSizeThinBlock, strCommand);
 }
 
@@ -671,6 +673,8 @@ bool CXThinBlock::process(CNode *pfrom,
     int nSizeThinBlock,
     string strCommand) // TODO: request from the "best" txn source not necessarily from the block source
 {
+    LogPrintf("emd - Line 675 - Entered process\n");
+    
     // In PV we must prevent two thinblocks from simulaneously processing from that were recieved from the
     // same peer. This would only happen as in the example of an expedited block coming in
     // after an xthin request, because we would never explicitly request two xthins from the same peer.
@@ -683,6 +687,8 @@ bool CXThinBlock::process(CNode *pfrom,
         LOCK(cs_main);
         fXVal = (header.hashPrevBlock == chainActive.Tip()->GetBlockHash()) ? true : false;
     }
+    
+    LogPrintf("emd - Line 689 - About to ClearThinBLockData\n");
 
     thindata.ClearThinBlockData(pfrom);
     pfrom->nSizeThinBlock = nSizeThinBlock;
