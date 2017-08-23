@@ -978,7 +978,7 @@ void CThinBlockData::expireStats(std::map<int64_t, T> &statsMap)
 template <class T>
 void CThinBlockData::updateStats(std::map<int64_t, T> &statsMap, T value)
 {
-    LogPrintf("emd - Line 981 updateStats for value: %s\n", value);
+    LogPrintf("emd - Line 981 updateStats for value\n");
     AssertLockHeld(cs_thinblockstats);
     statsMap[getTimeForStats()] = value;
     expireStats(statsMap);
