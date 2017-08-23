@@ -862,7 +862,7 @@ bool CXThinBlock::process(CNode *pfrom,
         pfrom->thinBlock.GetHash().ToString(), blockSize, pfrom->nSizeThinBlock,
         ((float)blockSize) / ((float)pfrom->nSizeThinBlock), pfrom->GetLogName());
 
-    //LogPrintf("emd - Line 864 About to update run-time statistics\n", thindata.ToString().c_str());
+    LogPrintf("emd - Line 864 About to update run-time statistics: %s\n", thindata.ToString().c_str());
     
     // Update run-time statistics of thin block bandwidth savings
     thindata.UpdateInBound(pfrom->nSizeThinBlock, blockSize);
@@ -978,6 +978,7 @@ void CThinBlockData::expireStats(std::map<int64_t, T> &statsMap)
 template <class T>
 void CThinBlockData::updateStats(std::map<int64_t, T> &statsMap, T value)
 {
+    LogPrintf("emd - Line 981 updateStats for value: %s\n", value);
     AssertLockHeld(cs_thinblockstats);
     statsMap[getTimeForStats()] = value;
     expireStats(statsMap);
