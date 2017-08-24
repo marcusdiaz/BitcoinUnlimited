@@ -53,7 +53,7 @@ CThinBlock::CThinBlock(const CBlock &block, CBloomFilter &filter)
  */
 bool CThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom)
 {
-    LogPrintf("emd - Line 56 Entered Handle Message for incoming thin block line 56\n");
+    LogPrintf("emd - CThinBlock::HandleMessage Line 56 Entered for incoming thin block line 56\n");
     if (!pfrom->ThinBlockCapable())
     {
         dosMan.Misbehaving(pfrom, 100);
@@ -80,7 +80,7 @@ bool CThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom)
             return error("thinblock from peer %s will not connect, unknown previous block %s", pfrom->GetLogName(),
                 prevHash.ToString());
         } else {
-            LogPrintf("emd - Line 83 Did find a prev has %s from peer %s\n",prevHash.ToString(), pfrom->GetLogName());
+            LogPrintf("emd - Line 83 CThinBlock::HandleMessage Did find a prev has %s from peer %s\n",prevHash.ToString(), pfrom->GetLogName());
         }
         
         CBlockIndex *pprev = mi->second;
@@ -130,7 +130,7 @@ bool CThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom)
 
 bool CThinBlock::process(CNode *pfrom, int nSizeThinBlock)
 {
-    LogPrintf("emd - LIne 133 Entered process\n");
+    LogPrintf("emd - LIne 133 Entered CThinBlock::Process\n");
     // Xpress Validation - only perform xval if the chaintip matches the last blockhash in the thinblock
     bool fXVal;
     {
@@ -289,7 +289,7 @@ CXThinBlockTx::CXThinBlockTx(uint256 blockHash, vector<CTransaction> &vTx)
 
 bool CXThinBlockTx::HandleMessage(CDataStream &vRecv, CNode *pfrom)
 {
-    LogPrintf("emd - Line 291 Entered Handle Message line 291\n");
+    LogPrintf("emd - CXThinBlockTx::HandleMessage Line 291 Entered Handle Message line 291\n");
     if (!pfrom->ThinBlockCapable())
     {
         dosMan.Misbehaving(pfrom, 100);
@@ -435,14 +435,14 @@ bool CXThinBlockTx::HandleMessage(CDataStream &vRecv, CNode *pfrom)
 
 CXRequestThinBlockTx::CXRequestThinBlockTx(uint256 blockHash, set<uint64_t> &setHashesToRequest)
 {
-    LogPrintf("emd - Line 437 Entered CXRequestThinBlockTx\n");
+    LogPrintf("emd - CXRequestThinBlockTx::CXRequestThinBlockTx Line 437 Entered CXRequestThinBlockTx\n");
     blockhash = blockHash;
     setCheapHashesToRequest = setHashesToRequest;
 }
 
 bool CXRequestThinBlockTx::HandleMessage(CDataStream &vRecv, CNode *pfrom)
 {
-    LogPrintf("emd - Line 444 Entered HandleMessage line 444 \n");
+    LogPrintf("emd - CXRequestThinBlockTx::HandleMessage Line 444 Entered HandleMessage line 444 \n");
     if (!pfrom->ThinBlockCapable())
     {
         dosMan.Misbehaving(pfrom, 100);
@@ -540,7 +540,7 @@ bool CXThinBlock::CheckBlockHeader(const CBlockHeader &block, CValidationState &
  */
 bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strCommand, unsigned nHops)
 {
-    LogPrintf("emd - Line 542 Handle Message for incoming xthin block line 542\n");
+    LogPrintf("emd - CXThinBlock::HandleMessage Line 542 Handle Message for incoming xthin block line 542\n");
     if (!pfrom->ThinBlockCapable())
     {
         dosMan.Misbehaving(pfrom, 5);
@@ -575,7 +575,7 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
                 return error("xthinblock from peer %s will not connect, unknown previous block %s", pfrom->GetLogName(),
                     prevHash.ToString());
             } else {
-                LogPrintf("emd - Line 577 Did find a prev has %s from peer %s\n",prevHash.ToString(), pfrom->GetLogName());
+                LogPrintf("emd - CXThinBlock::HandleMessage Line 577 Did find a prev has %s from peer %s\n",prevHash.ToString(), pfrom->GetLogName());
             }
         }
 
@@ -590,7 +590,7 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
                     dosMan.Misbehaving(pfrom, nDoS);
                 LogPrintf("Received an invalid %s header from peer %s\n", strCommand, pfrom->GetLogName());
             }
-            LogPrintf("emd - Line 592 Entered failed AcceptBlockHeader line 592\n");
+            LogPrintf("emd - CXThinBlock::HandleMessage Line 592 Entered failed AcceptBlockHeader line 592\n");
             thindata.ClearThinBlockData(pfrom, thinBlock.header.GetHash());
             return false;
         }
@@ -609,7 +609,7 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
         // Return early if we already have the block data
         if (pIndex->nStatus & BLOCK_HAVE_DATA)
         {
-            LogPrintf("emd - Line 611 Return early because we already have the block line 611\n");
+            LogPrintf("emd - CXThinBlock::HandleMessage Line 611 Return early because we already have the block line 611\n");
             // Tell the Request Manager we received this block
             requester.AlreadyReceived(inv);
 
@@ -623,7 +623,7 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
         // Request full block if it isn't extending the best chain
         if (pIndex->nChainWork <= chainActive.Tip()->nChainWork)
         {
-            LogPrintf("emd - Line 625 - thinblock.cpp\n");
+            LogPrintf("emd - CXThinBlock::HandleMessage Line 625 - thinblock.cpp\n");
             vector<CInv> vGetData;
             vGetData.push_back(inv);
             pfrom->PushMessage(NetMsgType::GETDATA, vGetData);
@@ -640,7 +640,7 @@ bool CXThinBlock::HandleMessage(CDataStream &vRecv, CNode *pfrom, string strComm
         // If this is an expedited block then add and entry to mapThinBlocksInFlight.
         if (nHops > 0 && connmgr->IsExpeditedUpstream(pfrom))
         {
-            LogPrintf("emd - Line 643 - About to AddThinBLockInFlight\n");
+            LogPrintf("emd - CXThinBlock::HandleMessage Line 643 - About to AddThinBLockInFlight\n");
             AddThinBlockInFlight(pfrom, inv.hash);
 
             LogPrint("thin", "Received new expedited %s %s from peer %s hop %d size %d bytes\n", strCommand,
@@ -673,7 +673,7 @@ bool CXThinBlock::process(CNode *pfrom,
     int nSizeThinBlock,
     string strCommand) // TODO: request from the "best" txn source not necessarily from the block source
 {
-    LogPrintf("emd - Line 675 - Entered process\n");
+    LogPrintf("emd - CXThinBlock::process Line 675 - Entered process\n");
     
     // In PV we must prevent two thinblocks from simulaneously processing from that were recieved from the
     // same peer. This would only happen as in the example of an expedited block coming in
@@ -688,8 +688,8 @@ bool CXThinBlock::process(CNode *pfrom,
         fXVal = (header.hashPrevBlock == chainActive.Tip()->GetBlockHash()) ? true : false;
     }
     
-    LogPrintf("emd - Line 689 - About to ClearThinBLockData\n");
-    LogPrintf("emd - Line 692 - thinblock Data . %s\n",thindata.ToString().c_str());
+    LogPrintf("emd - CXThinBlock::process Line 689 - About to ClearThinBLockData\n");
+    LogPrintf("emd - CXThinBlock::process Line 692 - thinblock Data . %s\n",thindata.ToString().c_str());
 
     thindata.ClearThinBlockData(pfrom);
     pfrom->nSizeThinBlock = nSizeThinBlock;
@@ -780,7 +780,7 @@ bool CXThinBlock::process(CNode *pfrom,
             // We don't need this after here.
             mapPartialTxHash.clear();
 
-            LogPrintf("emd - Line 783 About to Reconstruct block\n");
+            LogPrintf("emd - CXThinBlock::process Line 783 About to Reconstruct block\n");
             // Reconstruct the block if there are no hashes to re-request
             if (setHashesToRequest.empty())
             {
@@ -852,7 +852,7 @@ bool CXThinBlock::process(CNode *pfrom,
         return error("Still missing transactions for xthinblock: re-requesting a full block");
     }
 
-    LogPrintf("emd - Line 854 We now have all transactions\n");
+    LogPrintf("emd - CXThinBlock::process Line 854 We now have all transactions\n");
     
     // We now have all the transactions now that are in this block
     pfrom->thinBlockWaitingForTxns = -1;
@@ -862,13 +862,13 @@ bool CXThinBlock::process(CNode *pfrom,
         pfrom->thinBlock.GetHash().ToString(), blockSize, pfrom->nSizeThinBlock,
         ((float)blockSize) / ((float)pfrom->nSizeThinBlock), pfrom->GetLogName());
 
-    LogPrintf("emd - Line 864 About to update run-time statistics: %s\n", thindata.ToString().c_str());
+    LogPrintf("emd - CXThinBlock::process Line 864 About to update run-time statistics: %s\n", thindata.ToString().c_str());
     
     // Update run-time statistics of thin block bandwidth savings
     thindata.UpdateInBound(pfrom->nSizeThinBlock, blockSize);
     LogPrint("thin", "thin block stats: %s\n", thindata.ToString().c_str());
 
-    LogPrintf("emd - LIne 871 updated thin block stats: %s\n", thindata.ToString().c_str());
+    LogPrintf("emd - CXThinBlock::process LIne 871 updated thin block stats: %s\n", thindata.ToString().c_str());
     
     // Process the full block
     PV->HandleBlockMessage(pfrom, strCommand, pfrom->thinBlock, GetInv());
@@ -978,7 +978,7 @@ void CThinBlockData::expireStats(std::map<int64_t, T> &statsMap)
 template <class T>
 void CThinBlockData::updateStats(std::map<int64_t, T> &statsMap, T value)
 {
-    LogPrintf("emd - Line 981 updateStats for value\n");
+    LogPrintf("emd - CThinBlockData::updateStats Line 981 updateStats for value\n");
     AssertLockHeld(cs_thinblockstats);
     statsMap[getTimeForStats()] = value;
     expireStats(statsMap);
@@ -1535,7 +1535,7 @@ void AddThinBlockInFlight(CNode *pfrom, uint256 hash)
 
 void SendXThinBlock(CBlock &block, CNode *pfrom, const CInv &inv)
 {
-    LogPrintf("emd - Line 1523 Entered into SendXThinBlock\n");
+    LogPrintf("emd - SendXthinBlock() Line 1523 Entered into SendXThinBlock\n");
     if (inv.type == MSG_XTHINBLOCK)
     {
         CXThinBlock xThinBlock(block, pfrom->pThinBlockFilter);
@@ -1543,7 +1543,7 @@ void SendXThinBlock(CBlock &block, CNode *pfrom, const CInv &inv)
         if (xThinBlock.collision ==
             true) // If there is a cheapHash collision in this block then send a normal thinblock
         {
-            LogPrintf("emd - Line 1531 Sending normal thinblock\n");
+            LogPrintf("emd - SendXThinBlock() Line 1531 Sending normal thinblock\n");
             CThinBlock thinBlock(block, *pfrom->pThinBlockFilter);
             int nSizeThinBlock = ::GetSerializeSize(xThinBlock, SER_NETWORK, PROTOCOL_VERSION);
             if (nSizeThinBlock < nSizeBlock)
@@ -1590,7 +1590,7 @@ void SendXThinBlock(CBlock &block, CNode *pfrom, const CInv &inv)
     }
     else if (inv.type == MSG_THINBLOCK)
     {
-        LogPrintf("emd - Line 1578 Sending normal thinblock\n");
+        LogPrintf("emd - SendXThinBlock() Line 1578 Sending normal thinblock\n");
         CThinBlock thinBlock(block, *pfrom->pThinBlockFilter);
         int nSizeBlock = ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION);
         int nSizeThinBlock = ::GetSerializeSize(thinBlock, SER_NETWORK, PROTOCOL_VERSION);
