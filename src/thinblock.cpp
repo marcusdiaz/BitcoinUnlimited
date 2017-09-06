@@ -138,7 +138,7 @@ bool CThinBlock::process(CNode *pfrom, int nSizeThinBlock)
         fXVal = (header.hashPrevBlock == chainActive.Tip()->GetBlockHash()) ? true : false;
     }
 
-    thindata.ClearThinBlockData(pfrom);
+    //emdthindata.ClearThinBlockData(pfrom);
     pfrom->nSizeThinBlock = nSizeThinBlock;
 
     pfrom->thinBlock.nVersion = header.nVersion;
@@ -691,7 +691,7 @@ bool CXThinBlock::process(CNode *pfrom,
     LogPrintf("emd - CXThinBlock::process Line 689 - About to ClearThinBLockData\n");
     LogPrintf("emd - CXThinBlock::process Line 692 - thinblock Data . %s\n",thindata.ToString().c_str());
 
-    thindata.ClearThinBlockData(pfrom);
+    //emdthindata.ClearThinBlockData(pfrom);
     pfrom->nSizeThinBlock = nSizeThinBlock;
 
     pfrom->thinBlock.nVersion = header.nVersion;
@@ -1012,6 +1012,7 @@ void CThinBlockData::UpdateInBound(uint64_t nThinBlockSize, uint64_t nOriginalBl
     nOriginalSize += nOriginalBlockSize;
     nThinSize += nThinBlockSize;
     nBlocks += 1;
+    LogPrintf("emd - Line 1015 in UpdateInBound()\n");
     updateStats(mapThinBlocksInBound, pair<uint64_t, uint64_t>(nThinBlockSize, nOriginalBlockSize));
 }
 
@@ -1021,6 +1022,7 @@ void CThinBlockData::UpdateOutBound(uint64_t nThinBlockSize, uint64_t nOriginalB
     nOriginalSize += nOriginalBlockSize;
     nThinSize += nThinBlockSize;
     nBlocks += 1;
+    LogPrintf("emd - Line 1025 UpdateOutBound()\n");
     updateStats(mapThinBlocksOutBound, pair<uint64_t, uint64_t>(nThinBlockSize, nOriginalBlockSize));
 }
 
