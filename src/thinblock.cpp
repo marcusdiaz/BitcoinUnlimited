@@ -1030,6 +1030,7 @@ void CThinBlockData::UpdateOutBoundBloomFilter(uint64_t nBloomFilterSize)
 {
     LOCK(cs_thinblockstats);
     nTotalBloomFilterBytes += nBloomFilterSize;
+    LogPrintf("emd - Line 1033 thinblocks.cpp UpdateOutBoundBloomFilter()\n");
     updateStats(mapBloomFiltersOutBound, nBloomFilterSize);
 }
 
@@ -1037,6 +1038,7 @@ void CThinBlockData::UpdateInBoundBloomFilter(uint64_t nBloomFilterSize)
 {
     LOCK(cs_thinblockstats);
     nTotalBloomFilterBytes += nBloomFilterSize;
+    LogPrintf("emd - Line 1040 thinblocks.cpp UpdateInBoundBloomFilter\n");
     updateStats(mapBloomFiltersInBound, nBloomFilterSize);
 }
 
@@ -1047,6 +1049,7 @@ void CThinBlockData::UpdateResponseTime(double nResponseTime)
     // only update stats if IBD is complete
     if (IsChainNearlySyncd() && IsThinBlocksEnabled())
     {
+        LogPrintf("emd - Line 1052 thinblocks.cpp UpdateResponseTime()\n");
         updateStats(mapThinBlockResponseTime, nResponseTime);
     }
 }
@@ -1058,6 +1061,7 @@ void CThinBlockData::UpdateValidationTime(double nValidationTime)
     // only update stats if IBD is complete
     if (IsChainNearlySyncd() && IsThinBlocksEnabled())
     {
+        LogPrintf("emd - Line 1064 thinblocks.cpp UpdateValidationTime()\n");
         updateStats(mapThinBlockValidationTime, nValidationTime);
     }
 }
@@ -1065,7 +1069,7 @@ void CThinBlockData::UpdateValidationTime(double nValidationTime)
 void CThinBlockData::UpdateInBoundReRequestedTx(int nReRequestedTx)
 {
     LOCK(cs_thinblockstats);
-
+    LogPrintf("emd - Line 1068 thinblocks.cpp UpdateInBounReRequestedTx\n");
     // Update InBound thinblock tracking information
     updateStats(mapThinBlocksInBoundReRequestedTx, nReRequestedTx);
 }
