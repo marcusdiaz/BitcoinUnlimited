@@ -84,15 +84,15 @@ BOOST_AUTO_TEST_CASE(stat_testvectors)
     BOOST_CHECK(s3.History(1, 0) == 120000);
     BOOST_CHECK(s4.History(1, 0) == 3.3);
 
-    statMinInterval = boost::posix_time::milliseconds(10); // boost::posix_time::seconds(1); // Speed things up
-    for (int i = 0; i < 12; i++)
-        for (int j = 0; j < 30; j++)
-        {
-            s1 += 5;
-            s2 += 10;
-            s3 += 10000;
-            s4 += 3.3;
-            s5 << 2.4;
+  statMinInterval=std::chrono::milliseconds(30); // Speed things up
+  for (int i=0;i<12;i++)
+    for (int j=0;j<30;j++)
+    {
+    s1 += 5;
+    s2 += 10;
+    s3 += 10000;
+    s4 += 3.3;
+    s5 << 2.4;
 #if 0
     MilliSleep(10);
     for (int k=0;k<numMetrics;k++)
