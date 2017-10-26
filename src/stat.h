@@ -178,6 +178,7 @@ protected:
     unsigned int op;
     boost::asio::deadline_timer timer;
     RecordType history[STATISTICS_NUM_RANGES][STATISTICS_SAMPLES];
+    int64_t historyTime[STATISTICS_NUM_RANGES][STATISTICS_SAMPLES];
     int loc[STATISTICS_NUM_RANGES];
     int len[STATISTICS_NUM_RANGES];
     uint64_t timerCount;
