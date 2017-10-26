@@ -188,7 +188,7 @@ protected:
 public:
     CStatHistory() : CStat<DataType, RecordType>(), op(STAT_OP_SUM | STAT_KEEP_COUNT), timer(stat_io_service)
     {
-        Clear();
+        Clear(false);
     }
     CStatHistory(const char *name, unsigned int operation = STAT_OP_SUM)
         : CStat<DataType, RecordType>(name), op(operation), timer(stat_io_service)
@@ -216,7 +216,7 @@ public:
         Clear();
     }
 
-    void Clear(void)
+    void Clear(bool fStart = true)
     {
         timerCount = 0;
         sampleCount = 0;
@@ -231,7 +231,9 @@ public:
             }
         total = RecordType();
         this->value = RecordType();
-        Start();
+
+        if (fStart)
+            Start();
     }
 
     virtual ~CStatHistory() {}

@@ -447,8 +447,9 @@ static void addZmqOptions(AllowedArgs &allowedArgs)
 
 static void addDebuggingOptions(AllowedArgs &allowedArgs, HelpMessageMode mode)
 {
-    std::string debugCategories = "addrman, alert, bench, coindb, db, lock, rand, rpc, selectcoins, mempool, "
-                                  "mempoolrej, net, proxy, prune, http, libevent, tor, zmq, thin, NWM";
+    std::string debugCategories = "addrman, bench, blk, bloom, coindb, db, estimatefee, evict, http, lck, "
+                                  "libevent, mempool, mempoolrej, miner, net, parallel, partitioncheck, "
+                                  "proxy, prune, rand, reindex, req, rpc, selectcoins, thin, tor, wallet, zmq";
     if (mode == HMM_BITCOIN_QT)
         debugCategories += ", qt";
 
@@ -585,7 +586,10 @@ static void addNodeRelayOptions(AllowedArgs &allowedArgs)
                         "average data rates, the client may send extra data to bring the average back to '-receiveavg' "
                         "but the data rate will not exceed this parameter (default: %u)"),
                     DEFAULT_MAX_SEND_BURST))
-        .addArg("use-thinblocks", optionalBool, _("Enable thin blocks to speed up the relay of blocks (default: 1)"));
+        .addArg("use-thinblocks", optionalBool, _("Enable thin blocks to speed up the relay of blocks (default: 1)"))
+        .addArg("xthinbloomfiltersize=<n>", requiredInt,
+            strprintf(_("The maximum xthin bloom filter size that our node will accept in Bytes (default: %u)"),
+                    SMALLEST_MAX_BLOOM_FILTER_SIZE));
 }
 
 static void addBlockCreationOptions(AllowedArgs &allowedArgs)

@@ -12,6 +12,7 @@ from test_framework.util import assert_equal
 from test_framework.util import *
 from test_framework.script import *
 from test_framework.blocktools import *
+from test_framework.bunode import *
 import test_framework.script as script
 import traceback
 import pdb
@@ -19,7 +20,7 @@ import sys
 if sys.version_info[0] < 3:
     raise "Use Python 3"
 import logging
-logging.basicConfig(format='%(asctime)s.%(levelname)s: %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s.%(levelname)s: %(message)s', level=logging.INFO, stream=sys.stdout)
 
 NODE_BITCOIN_CASH = (1 << 5)
 invalidOpReturn = hexlify(b'Bitcoin: A Peer-to-Peer Electronic Cash System')
@@ -169,6 +170,15 @@ class BUIP055Test (BitcoinTestFramework):
             assert(t['mining.forkTime'] == now)
 
         self.nodes[3].set("mining.forkTime=0")
+        nodeInfo = self.nodes[3].getnetworkinfo()
+
+        # if this is a bitcoin cash build, we need to do the cash defaults on our old chain node
+        if int(nodeInfo["localservices"],16)&NODE_BITCOIN_CASH:
+            self.nodes[3].set("net.excessiveBlock=1000000")  # keep it on the 1MB chain
+            self.nodes[3].set("net.onlyRelayForkSig=False")
+            self.nodes[2].set("net.excessiveBlock=1000000")  # keep it on the 1MB chain
+            self.nodes[2].set("net.onlyRelayForkSig=False")
+
         return now
 
     def createUtxos(self, node, addrs, amt):
@@ -225,8 +235,37 @@ class BUIP055Test (BitcoinTestFramework):
         decimal.getcontext().prec = decContext
         return (count, size)
 
+    def testNetMagic(self):
+        info = self.nodes[0].getnetworkinfo()
+
+        # Both BUcash and BU should connect to a normal BU node
+        bunode = BasicBUNode()
+        bunode.connect(0,'127.0.0.1', p2p_port(1), self.nodes[1])
+        NetworkThread().start()  # Start up network handling in another thread
+        bunode.cnxns[0].wait_for_verack()
+
+        buCashNode = BasicBUCashNode()
+        buCashNode.connect(0,'127.0.0.1', p2p_port(0), self.nodes[0])
+        if int(info["localservices"],16)&NODE_BITCOIN_CASH:
+            try: # Accept BU cash nodes if running BTC node
+                buCashNode.cnxns[0].wait_for_buverack()
+            except DisconnectedError:
+                assert(not "should not have disconnected a bitcoin cash node")
+        else:
+            try: # do not accept BU cash nodes if running BTC node
+                buCashNode.cnxns[0].wait_for_buverack()
+                assert(not "should have disconnected a bitcoin cash node")
+            except DisconnectedError:
+                logging.info("properly disconnected bucash node")
+
     def run_test(self):
+        # this test is mean to test fork scenarios starting from mainchain nodes.
+        nodeInfo = self.nodes[0].getnetworkinfo()
+        if int(nodeInfo["localservices"],16)&NODE_BITCOIN_CASH:
+            return
+
         # Creating UTXOs needed for building tx for large blocks
+        self.testNetMagic()
         NUM_ADDRS = 50
         logging.info("Creating addresses...")
         self.nodes[0].keypoolrefill(NUM_ADDRS)
@@ -345,7 +384,7 @@ class BUIP055Test (BitcoinTestFramework):
         wallet = self.nodes[1].listunspent()
         utxo = wallet.pop()
         txn = createrawtransaction([utxo], {addrs1[0]:utxo["amount"]}, wastefulOutput)
-        signedtxn = self.nodes[1].signrawtransaction(txn,None,None, "ALL")
+        signedtxn = self.nodes[1].signrawtransaction(txn,None,None, "ALL|NOFORKID")
         signedtxn2 = self.nodes[1].signrawtransaction(txn,None,None,"ALL|FORKID")
         assert(signedtxn["hex"] != signedtxn2["hex"])  # they should use a different sighash method
         try:
@@ -364,9 +403,14 @@ class BUIP055Test (BitcoinTestFramework):
         # connect 1 to 3 to propagate these transactions
         connect_nodes(self.nodes[1],3)
 
-        # Issue sendtoaddress commands using both the new sighash and the ond and ensure that they work.
+        # Issue sendtoaddress commands using both the new sighash and the old and ensure that first fails, second works.
         self.nodes[1].set("wallet.useNewSig=False")
-        txhash2 = self.nodes[1].sendtoaddress(addrs[0], 2.345)
+        try:
+            txhash2 = self.nodes[1].sendtoaddress(addrs[0], 2.345)
+            assert( not "fork must use new sighash")
+        except JSONRPCException as e:
+             txhash2 = self.nodes[3].sendtoaddress(addrs[0], 2.345)
+
         self.nodes[1].set("wallet.useNewSig=True")
         # produce a new sighash transaction using the sendtoaddress API
         txhash = self.nodes[1].sendtoaddress(addrs[0], 1.234)
@@ -378,17 +422,22 @@ class BUIP055Test (BitcoinTestFramework):
             assert("mandatory-script-verify-flag-failed" in e.error["message"])
             # hitting this exception verifies that the new format was rejected by the unforked node and that the new format was generated
 
-        rawtx = self.nodes[1].getrawtransaction(txhash2)
-        self.nodes[3].sendrawtransaction(rawtx)  # should replay on the small block fork, since its an old sighash tx
+        #rawtx = self.nodes[1].getrawtransaction(txhash2)
+        #self.nodes[3].sendrawtransaction(rawtx)  # should replay on the small block fork, since its an old sighash tx
 
         self.nodes[1].generate(1)
         txinfo = self.nodes[1].gettransaction(txhash)
         assert(txinfo["blockindex"] > 0) # ensure that the new-style tx was included in the block
-        txinfo = self.nodes[1].gettransaction(txhash2)
-        if self.nodes[1].get("net.onlyRelayForkSig")["net.onlyRelayForkSig"]:
-            assert(not "blockindex" in txinfo) # old style won't be included in the block
-        else:
-            assert(txinfo["blockindex"] > 0) # ensure that the old-style tx was included in the block
+        try:
+            txinfo = self.nodes[1].gettransaction(txhash2)
+            assert(not "old transaction was improperly accepted in forked node")
+        except JSONRPCException:
+            pass
+
+        #if self.nodes[1].get("net.onlyRelayForkSig")["net.onlyRelayForkSig"]:
+        #    assert(not "blockindex" in txinfo) # old style won't be included in the block
+        #else:
+        #    assert(txinfo["blockindex"] > 0) # ensure that the old-style tx was included in the block
 
         # small block node should have gotten this cross-chain replayable tx
         txsIn3 = self.nodes[3].getrawmempool()
@@ -398,8 +447,12 @@ class BUIP055Test (BitcoinTestFramework):
         assert(txsIn3 == []) # all transactions were included in the block
 
         # Issue sendmany commands using both the new sighash and the ond and ensure that they work.
-        self.nodes[1].set("wallet.useNewSig=False")
-        txhash2 = self.nodes[1].sendmany("",{addrs[0]:2.345, addrs[1]:1.23})
+        try:
+            self.nodes[1].set("wallet.useNewSig=False")
+            txhash2 = self.nodes[1].sendmany("",{addrs[0]:2.345, addrs[1]:1.23})
+            assert(not "this tx should not have been accepted")
+        except JSONRPCException:
+            pass
         self.nodes[1].set("wallet.useNewSig=True")
         # produce a new sighash transaction using the sendtoaddress API
         txhash = self.nodes[1].sendmany("",{addrs[0]:0.345, addrs[1]:0.23})
@@ -418,7 +471,9 @@ class BUIP055Test (BitcoinTestFramework):
         sync_blocks(self.nodes[0:2])
 
         # generate blocks on the original side
-        self.nodes[2].generate(2)
+        sync_blocks(self.nodes[2:])
+        hashes = self.nodes[2].generate(2)
+        print(hashes)
         sync_blocks(self.nodes[2:])
         counts = [x.getblockcount() for x in self.nodes]
         assert(counts == [forkHeight + 6, forkHeight + 6, base[3] + 15 + 3, base[3] + 15 + 3])
@@ -564,17 +619,12 @@ sys.excepthook = info
 
 def Test():
     t = BUIP055Test(True)
+    t.drop_to_pdb = True
     bitcoinConf = {
         "debug": ["net", "blk", "thin", "mempool", "req", "bench", "evict"],  # "lck"
         "blockprioritysize": 2000000  # we don't want any transactions rejected due to insufficient fees...
     }
-    try:
-        t.main(["--tmpdir=/ramdisk/test","--nocleanup","--noshutdown"], bitcoinConf, None)  # , "--tracerpc"])
-    except:
-        typ, value, tb = sys.exc_info()
-        if typ == SystemExit: raise
-        traceback.print_exc()
-        pdb.post_mortem(tb)
+    t.main(["--tmpdir=/ramdisk/test","--nocleanup","--noshutdown"], bitcoinConf, None)  # , "--tracerpc"])
 
 
 if __name__ == '__main__':

@@ -56,6 +56,7 @@ boost::thread_specific_ptr<LockStack> lockstack;
 
 
 std::atomic<bool> fIsInitialBlockDownload{false};
+std::atomic<bool> fRescan{false}; // this flag is set to true when a wallet rescan has been invoked.
 
 // main.cpp CriticalSections:
 CCriticalSection cs_LastBlockFile;
@@ -286,3 +287,5 @@ CStatHistory<uint64_t> nBlockValidationTime("blockValidationTime", STAT_OP_MAX |
 CCriticalSection cs_blockvalidationtime;
 
 CThinBlockData thindata; // Singleton class
+
+uint256 bitcoinCashForkBlockHash = uint256S("000000000000000000651ef99cb9fcbe0dadde1d424bd9f15ff20136191a5eec");
