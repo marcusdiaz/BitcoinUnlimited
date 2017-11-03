@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(stat_testvectors)
     (*s3) += 10000;
     (*s4) += 3.3;
     (*s5) << 2.4;
-#if 0  // timing does not trigger accurately enough
+#if 0 // timing does not trigger accurately enough
     MilliSleep(50);
     for (int j=0;j<numMetrics;j++)
       stat_io_service.run_one();
