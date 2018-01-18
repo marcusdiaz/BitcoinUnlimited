@@ -1494,4 +1494,202 @@ BOOST_AUTO_TEST_CASE(script_FindAndDelete)
     BOOST_CHECK(s == expect);
 }
 
+// emd new
+//BOOST_AUTO_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
+BOOST_FIXTURE_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
+{
+
+    std::cout << "Using custom entry point..." << std::endl;
+    ScriptError err;
+
+    /******************************************
+    * construct a block and fill it with tx's
+    * containing long-running scripts 
+    ******************************************/
+
+    /* emd I don't really know what this does. At the least
+      it creates a script and adds some stuff to it.  */
+    CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
+
+/* emd I don't really know what this is doing but it looks
+like its being used downstream so im gonna leave it here
+for now
+*/
+    unsigned int sighashType = SIGHASH_ALL;
+    if (chainActive.Tip()->IsforkActiveOnNextBlock(miningForkTime.value))
+        sighashType |= SIGHASH_FORKID;
+
+    // Create txnx with slow scripts:
+    std::vector<CMutableTransaction> spends;
+    spends.resize(1000);
+    for (int i = 0; i < 1000; i++)
+    {
+        spends[i].vin.resize(1);
+        spends[i].vin[0].prevout.hash = coinbaseTxns[0].GetHash();
+        spends[i].vin[0].prevout.n = 0;
+        spends[i].vout.resize(1);
+        spends[i].vout[0].nValue = 11 * CENT;
+        spends[i].vout[0].scriptPubKey = scriptPubKey;
+    
+       // Sign:
+        std::vector<unsigned char> vchSig;
+        uint256 hash = SignatureHash(scriptPubKey, spends[i], 0, sighashType, coinbaseTxns[0].vout[0].nValue, 0);
+        BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
+        vchSig.push_back((unsigned char)sighashType);
+        spends[i].vin[0].scriptSig << vchSig;
+    }
+
+
+    //Add spends to block and process
+    CBlock block;
+    block = CreateAndProcessBlock(spends, scriptPubKey);
+    BOOST_CHECK(chainActive.Tip()->GetBlockHash() != block.GetHash());
+
+    
+    vector<vector<unsigned char> > resultStack;
+    //CScript resultStack = CScript();
+    //resultStack << OP_1 << OP_1;
+    
+    CScript res_stack;
+    res_stack << OP_1 << OP_1;
+    
+    CScript quad_test;
+    quad_test << OP_1;
+    for(int i=0; i<1; ++i)
+    {
+        quad_test << OP_IF ;
+    }
+    for(int i = 0; i<1; ++i)
+    {
+        quad_test << OP_1;
+    }
+    for(int i=0; i<1; ++i)
+    {
+        quad_test << OP_ENDIF ;
+    }
+    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+    for(int i = 0; i<10; ++i) {
+        quad_test << OP_1;
+        quad_test << OP_IF;
+        quad_test << OP_NOP;
+        quad_test << OP_ENDIF;
+    }
+    BOOST_CHECK_MESSAGE(
+        VerifyScript(res_stack, quad_test, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err),
+      "VerifyScript base msg.");
+    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
+    
+    BOOST_CHECK_MESSAGE(
+        EvalScript(resultStack, quad_test, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err),
+      "EvalScript base msg.");
+    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
+    
+    std::cout << "Res is " << resultStack[1][0] << endl;
+}
+
+BOOST_AUTO_TEST_CASE(script_baseTest_emd) {
+    vector<vector<unsigned char> > resultStack;
+    //CScript resultStack = CScript();
+    //resultStack << OP_1 << OP_1;
+    
+    CScript res_stack;
+    res_stack << OP_1 << OP_1;
+    
+    CScript quad_test;
+    quad_test << OP_1;
+    for(int i=0; i<1; ++i)
+    {
+        quad_test << OP_IF ;
+    }
+    for(int i = 0; i<1; ++i)
+    {
+        quad_test << OP_1;
+    }
+    for(int i=0; i<1; ++i)
+    {
+        quad_test << OP_ENDIF ;
+    }
+    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+    for(int i = 0; i<10; ++i) {
+        quad_test << OP_1;
+        quad_test << OP_IF;
+        quad_test << OP_NOP;
+        quad_test << OP_ENDIF;
+    }
+    BOOST_CHECK_MESSAGE(
+        VerifyScript(res_stack, quad_test, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err),
+      "VerifyScript base msg.");
+    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
+    
+    BOOST_CHECK_MESSAGE(
+        EvalScript(resultStack, quad_test, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err),
+      "EvalScript base msg.");
+    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
+    
+    std::cout << "Res is " << resultStack[1][0] << endl;
+}
+
+BOOST_AUTO_TEST_CASE(script_SlowtoValidate)
+{
+//emd base script test
+   std::cout << "Using custom entry point..." << std::endl;
+   ScriptError err;
+
+   vector<vector<unsigned char> > resultStack;
+   //CScript resultStack = CScript();
+   //resultStack << OP_1 << OP_1;
+
+   CScript res_stack;
+   res_stack << OP_1 << OP_1;
+
+    CScript quad_test;
+    quad_test << OP_1;
+     for(int i=0; i<1; ++i)
+      {
+         quad_test << OP_IF ;
+      }
+      for(int i = 0; i<1; ++i)
+      {
+         quad_test << OP_1;
+      }
+      for(int i=0; i<1; ++i)
+      {
+         quad_test << OP_ENDIF ;
+      }
+      quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+      quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+      quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+      quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+      quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+      quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
+      for(int i = 0; i<10; ++i) {
+          quad_test << OP_1;
+          quad_test << OP_IF;
+          quad_test << OP_NOP;
+          quad_test << OP_ENDIF;
+      }
+      BOOST_CHECK_MESSAGE(
+          VerifyScript(res_stack, quad_test, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err),
+        "VerifyScript base msg.");
+      BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
+
+      BOOST_CHECK_MESSAGE(
+          EvalScript(resultStack, quad_test, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err),
+        "EvalScript base msg.");
+      BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
+
+      std::cout << "Res is " << resultStack[1][0] << endl;
+
+}
+
 BOOST_AUTO_TEST_SUITE_END()
