@@ -1507,45 +1507,54 @@ BOOST_FIXTURE_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
     * containing long-running scripts 
     ******************************************/
 
-    /* emd I don't really know what this does. At the least
-      it creates a script and adds some stuff to it.  */
+    /* emd This creates the scriptPubKey which I believe will be what signs for the transaction.
+    So, this CScript is one place we can add an "inefficient transaction"  */
     CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
 
-/* emd I don't really know what this is doing but it looks
-like its being used downstream so im gonna leave it here
-for now
+/* emd I don't really know what this is doing (a bitwise OR between
+   SIGHASH_ALL and SIGHASH_FORKID but what is the significance?)
+   but it looks like its being used downstream so im gonna leave it here
+   for now
 */
     unsigned int sighashType = SIGHASH_ALL;
     if (chainActive.Tip()->IsforkActiveOnNextBlock(miningForkTime.value))
         sighashType |= SIGHASH_FORKID;
 
-    // Create txnx with slow scripts:
-    std::vector<CMutableTransaction> spends;
-    spends.resize(1000);
+    // Create txns with slow scripts:
+    std::vector<CMutableTransaction> txns;
+    txns.resize(1000);
     for (int i = 0; i < 1000; i++)
     {
-        spends[i].vin.resize(1);
-        spends[i].vin[0].prevout.hash = coinbaseTxns[0].GetHash();
-        spends[i].vin[0].prevout.n = 0;
-        spends[i].vout.resize(1);
-        spends[i].vout[0].nValue = 11 * CENT;
-        spends[i].vout[0].scriptPubKey = scriptPubKey;
+        /* emd Within this loop I should be able to create
+          transactions with the inefficient scripts attached */
+        txns[i].vin.resize(1);
+        txns[i].vin[0].prevout.hash = coinbaseTxns[0].GetHash();
+        txns[i].vin[0].prevout.n = 0;
+        txns[i].vout.resize(1);
+        txns[i].vout[0].nValue = 11 * CENT;
+        txns[i].vout[0].scriptPubKey = scriptPubKey;
     
        // Sign:
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(scriptPubKey, spends[i], 0, sighashType, coinbaseTxns[0].vout[0].nValue, 0);
+        uint256 hash = SignatureHash(scriptPubKey, txns[i], 0, sighashType, coinbaseTxns[0].vout[0].nValue, 0);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char)sighashType);
-        spends[i].vin[0].scriptSig << vchSig;
+        txns[i].vin[0].scriptSig << vchSig;
     }
 
 
-    //Add spends to block and process
+    /* emd Add txns to block and process. Below is an unverified example
+       I copied. Need to check/finish if this is really what I want to do 
+       in order to ultimately time the validation of the block full of 
+       expensive scripts */
     CBlock block;
-    block = CreateAndProcessBlock(spends, scriptPubKey);
+    block = CreateAndProcessBlock(txns, scriptPubKey);
     BOOST_CHECK(chainActive.Tip()->GetBlockHash() != block.GetHash());
 
-    
+
+/* emd everything from here to the end of the function attempts to create
+   a single script and time it's validation or evaluation This code should more or less
+   make it's way to the for loop above */
     vector<vector<unsigned char> > resultStack;
     //CScript resultStack = CScript();
     //resultStack << OP_1 << OP_1;
@@ -1637,59 +1646,6 @@ BOOST_AUTO_TEST_CASE(script_baseTest_emd) {
     BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
     
     std::cout << "Res is " << resultStack[1][0] << endl;
-}
-
-BOOST_AUTO_TEST_CASE(script_SlowtoValidate)
-{
-//emd base script test
-   std::cout << "Using custom entry point..." << std::endl;
-   ScriptError err;
-
-   vector<vector<unsigned char> > resultStack;
-   //CScript resultStack = CScript();
-   //resultStack << OP_1 << OP_1;
-
-   CScript res_stack;
-   res_stack << OP_1 << OP_1;
-
-    CScript quad_test;
-    quad_test << OP_1;
-     for(int i=0; i<1; ++i)
-      {
-         quad_test << OP_IF ;
-      }
-      for(int i = 0; i<1; ++i)
-      {
-         quad_test << OP_1;
-      }
-      for(int i=0; i<1; ++i)
-      {
-         quad_test << OP_ENDIF ;
-      }
-      quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-      quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-      quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-      quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-      quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-      quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-      for(int i = 0; i<10; ++i) {
-          quad_test << OP_1;
-          quad_test << OP_IF;
-          quad_test << OP_NOP;
-          quad_test << OP_ENDIF;
-      }
-      BOOST_CHECK_MESSAGE(
-          VerifyScript(res_stack, quad_test, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err),
-        "VerifyScript base msg.");
-      BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
-
-      BOOST_CHECK_MESSAGE(
-          EvalScript(resultStack, quad_test, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err),
-        "EvalScript base msg.");
-      BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
-
-      std::cout << "Res is " << resultStack[1][0] << endl;
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()
