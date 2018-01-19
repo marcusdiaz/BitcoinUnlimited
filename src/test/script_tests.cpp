@@ -1500,7 +1500,6 @@ BOOST_FIXTURE_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
 {
 
     std::cout << "Using custom entry point..." << std::endl;
-    ScriptError err;
 
     /******************************************
     * construct a block and fill it with tx's
@@ -1517,22 +1516,38 @@ BOOST_FIXTURE_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
    for now
 */
     unsigned int sighashType = SIGHASH_ALL;
-    if (chainActive.Tip()->IsforkActiveOnNextBlock(miningForkTime.value))
+ //   if (chainActive.Tip()->IsforkActiveOnNextBlock(miningForkTime.value))
         sighashType |= SIGHASH_FORKID;
+
+/* emd Make the bad script */
+    CScript quad_test_script;
+    quad_test_script << OP_1 << OP_1;
+    int depth=100;
+    for(int i=0; i<(depth*10); ++i)
+    {
+        quad_test_script << OP_IF ;
+        quad_test_script << OP_1 ;
+    }
+    for(int i = 0; i<depth; ++i)
+    {
+        quad_test_script << OP_1;
+    }
+    for(int i=0; i<depth; ++i)
+    {
+        quad_test_script << OP_ENDIF ;
+    }
 
     // Create txns with slow scripts:
     std::vector<CMutableTransaction> txns;
     txns.resize(1000);
     for (int i = 0; i < 1000; i++)
     {
-        /* emd Within this loop I should be able to create
-          transactions with the inefficient scripts attached */
         txns[i].vin.resize(1);
         txns[i].vin[0].prevout.hash = coinbaseTxns[0].GetHash();
         txns[i].vin[0].prevout.n = 0;
         txns[i].vout.resize(1);
         txns[i].vout[0].nValue = 11 * CENT;
-        txns[i].vout[0].scriptPubKey = scriptPubKey;
+        txns[i].vout[0].scriptPubKey = quad_test_script;
     
        // Sign:
         std::vector<unsigned char> vchSig;
@@ -1548,13 +1563,17 @@ BOOST_FIXTURE_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
        in order to ultimately time the validation of the block full of 
        expensive scripts */
     CBlock block;
-    block = CreateAndProcessBlock(txns, scriptPubKey);
-    BOOST_CHECK(chainActive.Tip()->GetBlockHash() != block.GetHash());
+    block = CreateAndProcessBlock(txns, quad_test_script);
+    //BOOST_CHECK(chainActive.Tip()->GetBlockHash() != block.GetHash());
+
 
 
 /* emd everything from here to the end of the function attempts to create
    a single script and time it's validation or evaluation This code should more or less
    make it's way to the for loop above */
+
+/* Taking this out for now until I can get a block built and validated
+
     vector<vector<unsigned char> > resultStack;
     //CScript resultStack = CScript();
     //resultStack << OP_1 << OP_1;
@@ -1599,8 +1618,12 @@ BOOST_FIXTURE_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
     BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
     
     std::cout << "Res is " << resultStack[1][0] << endl;
+
+*/
+    
 }
 
+/*
 BOOST_AUTO_TEST_CASE(script_baseTest_emd) {
     vector<vector<unsigned char> > resultStack;
     //CScript resultStack = CScript();
@@ -1647,5 +1670,6 @@ BOOST_AUTO_TEST_CASE(script_baseTest_emd) {
     
     std::cout << "Res is " << resultStack[1][0] << endl;
 }
+*/
 
 BOOST_AUTO_TEST_SUITE_END()
