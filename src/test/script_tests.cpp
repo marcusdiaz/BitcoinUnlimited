@@ -1498,7 +1498,8 @@ BOOST_AUTO_TEST_CASE(script_FindAndDelete)
 //BOOST_AUTO_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
 BOOST_FIXTURE_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
 {
-
+    ScriptError err;
+    
     std::cout << "Using custom entry point..." << std::endl;
 
     /******************************************
@@ -1521,21 +1522,30 @@ BOOST_FIXTURE_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
 
 /* emd Make the bad script */
     CScript quad_test_script;
-    quad_test_script << OP_1 << OP_1;
-    int depth=100;
-    for(int i=0; i<(depth*10); ++i)
+    quad_test_script << OP_0;
+    int depth=1000;
+    CScript res_stack;
+     BOOST_CHECK(
+         //VerifyScript(res_stack,quad_test_script, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err)
+1==1
+         );
+
+     VerifyScript(res_stack,quad_test_script, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err);
+
+    for(int i=0; i<(depth); ++i)
     {
         quad_test_script << OP_IF ;
-        quad_test_script << OP_1 ;
     }
-    for(int i = 0; i<depth; ++i)
+    for(int i = 0; i<9798; ++i)
     {
-        quad_test_script << OP_1;
+        quad_test_script << OP_0;
     }
     for(int i=0; i<depth; ++i)
     {
         quad_test_script << OP_ENDIF ;
     }
+    quad_test_script << OP_1;
+
 
     // Create txns with slow scripts:
     std::vector<CMutableTransaction> txns;
@@ -1548,11 +1558,11 @@ BOOST_FIXTURE_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
         txns[i].vout.resize(1);
         txns[i].vout[0].nValue = 11 * CENT;
         txns[i].vout[0].scriptPubKey = quad_test_script;
-    
+
        // Sign:
         std::vector<unsigned char> vchSig;
         uint256 hash = SignatureHash(scriptPubKey, txns[i], 0, sighashType, coinbaseTxns[0].vout[0].nValue, 0);
-        BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
+        //BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char)sighashType);
         txns[i].vin[0].scriptSig << vchSig;
     }
@@ -1564,6 +1574,7 @@ BOOST_FIXTURE_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
        expensive scripts */
     CBlock block;
     block = CreateAndProcessBlock(txns, quad_test_script);
+   // BOOST_CHECK(CreateAndProcessBlock(txns, quad_test_script) == true);
     //BOOST_CHECK(chainActive.Tip()->GetBlockHash() != block.GetHash());
 
 
@@ -1574,39 +1585,6 @@ BOOST_FIXTURE_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
 
 /* Taking this out for now until I can get a block built and validated
 
-    vector<vector<unsigned char> > resultStack;
-    //CScript resultStack = CScript();
-    //resultStack << OP_1 << OP_1;
-    
-    CScript res_stack;
-    res_stack << OP_1 << OP_1;
-    
-    CScript quad_test;
-    quad_test << OP_1;
-    for(int i=0; i<1; ++i)
-    {
-        quad_test << OP_IF ;
-    }
-    for(int i = 0; i<1; ++i)
-    {
-        quad_test << OP_1;
-    }
-    for(int i=0; i<1; ++i)
-    {
-        quad_test << OP_ENDIF ;
-    }
-    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-    for(int i = 0; i<10; ++i) {
-        quad_test << OP_1;
-        quad_test << OP_IF;
-        quad_test << OP_NOP;
-        quad_test << OP_ENDIF;
-    }
     BOOST_CHECK_MESSAGE(
         VerifyScript(res_stack, quad_test, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err),
       "VerifyScript base msg.");
@@ -1623,53 +1601,5 @@ BOOST_FIXTURE_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
     
 }
 
-/*
-BOOST_AUTO_TEST_CASE(script_baseTest_emd) {
-    vector<vector<unsigned char> > resultStack;
-    //CScript resultStack = CScript();
-    //resultStack << OP_1 << OP_1;
-    
-    CScript res_stack;
-    res_stack << OP_1 << OP_1;
-    
-    CScript quad_test;
-    quad_test << OP_1;
-    for(int i=0; i<1; ++i)
-    {
-        quad_test << OP_IF ;
-    }
-    for(int i = 0; i<1; ++i)
-    {
-        quad_test << OP_1;
-    }
-    for(int i=0; i<1; ++i)
-    {
-        quad_test << OP_ENDIF ;
-    }
-    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-    quad_test << OP_1ADD << OP_1 << OP_5 << OP_DUP;
-    for(int i = 0; i<10; ++i) {
-        quad_test << OP_1;
-        quad_test << OP_IF;
-        quad_test << OP_NOP;
-        quad_test << OP_ENDIF;
-    }
-    BOOST_CHECK_MESSAGE(
-        VerifyScript(res_stack, quad_test, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err),
-      "VerifyScript base msg.");
-    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
-    
-    BOOST_CHECK_MESSAGE(
-        EvalScript(resultStack, quad_test, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err),
-      "EvalScript base msg.");
-    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
-    
-    std::cout << "Res is " << resultStack[1][0] << endl;
-}
-*/
 
 BOOST_AUTO_TEST_SUITE_END()
